@@ -1,0 +1,24 @@
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import LandingPage from './LandingPage';
+import AdminDashboard from './AdminDashboard';
+import GalleryPage from './GalleryPage';
+import LoginPage from './LoginPage';
+import UserDashboard from './UserDashboard';
+
+import { SessionProvider } from './hooks/useSessions';
+
+export default function App() {
+  return (
+    <SessionProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/gallery" element={<GalleryPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/user-dashboard" element={<UserDashboard />} />
+        </Routes>
+      </Router>
+    </SessionProvider>
+  );
+}
