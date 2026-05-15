@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, ShieldCheck, Mail, Lock, ArrowLeft, Loader2, UserPlus, KeyRound, RefreshCw } from 'lucide-react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from './components/ui/input-otp';
@@ -27,7 +27,7 @@ export default function LoginPage() {
     let interval: any;
     if (resendTimer > 0) {
       interval = setInterval(() => {
-        setResendTimer((prev) => prev - 1);
+        setResendTimer((prev: number) => prev - 1);
       }, 1000);
     }
     return () => clearInterval(interval);
@@ -85,8 +85,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-brand-surface flex items-center justify-center p-4" style={{ fontFamily: 'Inter, sans-serif' }}>
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-brand-surface-hover">
+    <div className="min-h-[100vh] bg-brand-surface flex flex-col px-4 py-8 overflow-y-auto" style={{ fontFamily: 'Inter, sans-serif' }}>
+      <div className="max-w-md w-full m-auto bg-white rounded-3xl shadow-2xl overflow-hidden border border-brand-surface-hover">
         {/* Header */}
         <div className="p-8 pb-4 text-center">
           <button 
