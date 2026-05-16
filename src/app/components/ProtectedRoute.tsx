@@ -20,15 +20,15 @@ export function ProtectedRoute({ children, allowedRole }: ProtectedRouteProps) {
         const user = data.user;
 
         setIsAuthenticated(true);
+        setIsAuthorized(true);
 
         if (allowedRole && user.role !== allowedRole) {
           setIsAuthorized(false);
-        } else {
-          setIsAuthorized(true);
         }
       } catch (err) {
         AuthService.logout();
         setIsAuthenticated(false);
+        setIsAuthorized(false);
       }
     };
 
