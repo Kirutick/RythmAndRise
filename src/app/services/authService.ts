@@ -48,19 +48,22 @@ export const AuthService = {
     return this.handleResponse(res);
   },
 
-  async loginStep1(email: string, password: string, role: 'user' | 'admin') {
-    const res = await fetch(`${API_BASE}/api/auth/login/step1`, {
-      ...fetchOptions,
-      method: 'POST',
-      body: JSON.stringify({ email, password, role }),
-    });
-    return this.handleResponse(res);
-  },
+async loginStep1(email: string, password: string, role: 'user' | 'admin') {
+  const res = await fetch(`${API_BASE}/api/auth/login/step1`, {
+    ...fetchOptions,
+    method: 'POST',
+    credentials: 'include',
+    body: JSON.stringify({ email, password, role }),
+  });
+
+  return this.handleResponse(res);
+},
 
   async signupStep2(data: Omit<UserData, 'role'>, otp: string, verificationId: string) {
     const res = await fetch(`${API_BASE}/api/auth/signup/step2`, {
       ...fetchOptions,
       method: 'POST',
+      credentials: 'include',
       body: JSON.stringify({ ...data, otp, verificationId }),
     });
     return this.handleResponse(res);
@@ -70,6 +73,7 @@ export const AuthService = {
     const res = await fetch(`${API_BASE}/api/auth/login/step2`, {
       ...fetchOptions,
       method: 'POST',
+      credentials: 'include',
       body: JSON.stringify({ email, otp, verificationId, role }),
     });
     const data = await this.handleResponse(res);
@@ -83,6 +87,7 @@ export const AuthService = {
     const res = await fetch(`${API_BASE}/api/auth/otp/resend`, {
       ...fetchOptions,
       method: 'POST',
+      credentials: 'include',
       body: JSON.stringify({ verificationId }),
     });
     return this.handleResponse(res);
@@ -100,7 +105,7 @@ export const AuthService = {
 
   async logout() {
     try {
-      await fetch(`${API_BASE}/api/auth/logout`, { ...fetchOptions, method: 'POST' });
+      await fetch(`${API_BASE}/api/auth/logout`, { ...fetchOptions, method: 'POST',credentials: 'include',});
     } catch (e) {
       console.error('Logout request failed:', e);
     } finally {
@@ -111,6 +116,7 @@ export const AuthService = {
   async verifyToken() {
     const res = await fetch(`${API_BASE}/api/auth/verify`, {
       ...fetchOptions,
+      credentials: 'include',
       method: 'GET',
     });
     const data = await this.handleResponse(res);
