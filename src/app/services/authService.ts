@@ -6,7 +6,7 @@ export interface UserData {
   role: 'user' | 'admin';
 }
 
-const API_BASE = '/api/auth';
+const API_BASE = 'https://rythmandrise-backend-production.up.railway.app';
 const fetchOptions: RequestInit = {
   headers: { 'Content-Type': 'application/json' },
   credentials: 'include', // Send secure HttpOnly cookies
@@ -40,7 +40,7 @@ export const AuthService = {
   },
 
   async signupStep1(data: Omit<UserData, 'role'>) {
-    const res = await fetch(`${API_BASE}/signup/step1`, {
+    const res = await fetch(`${API_BASE}/api/auth/signup/step1`, {
       ...fetchOptions,
       method: 'POST',
       body: JSON.stringify(data),
@@ -48,28 +48,32 @@ export const AuthService = {
     return this.handleResponse(res);
   },
 
-  async loginStep1(email: string, password: string, role: 'user' | 'admin') {
-    const res = await fetch(`${API_BASE}/login/step1`, {
-      ...fetchOptions,
-      method: 'POST',
-      body: JSON.stringify({ email, password, role }),
-    });
-    return this.handleResponse(res);
-  },
+async loginStep1(email: string, password: string, role: 'user' | 'admin') {
+  const res = await fetch(`${API_BASE}/api/auth/login/step1`, {
+    ...fetchOptions,
+    method: 'POST',
+    credentials: 'include',
+    body: JSON.stringify({ email, password, role }),
+  });
+
+  return this.handleResponse(res);
+},
 
   async signupStep2(data: Omit<UserData, 'role'>, otp: string, verificationId: string) {
-    const res = await fetch(`${API_BASE}/signup/step2`, {
+    const res = await fetch(`${API_BASE}/api/auth/signup/step2`, {
       ...fetchOptions,
       method: 'POST',
+      credentials: 'include',
       body: JSON.stringify({ ...data, otp, verificationId }),
     });
     return this.handleResponse(res);
   },
 
   async loginStep2(email: string, otp: string, verificationId: string, role: 'user' | 'admin') {
-    const res = await fetch(`${API_BASE}/login/step2`, {
+    const res = await fetch(`${API_BASE}/api/auth/login/step2`, {
       ...fetchOptions,
       method: 'POST',
+      credentials: 'include',
       body: JSON.stringify({ email, otp, verificationId, role }),
     });
     const data = await this.handleResponse(res);
@@ -80,9 +84,10 @@ export const AuthService = {
   },
 
   async resendOTP(verificationId: string) {
-    const res = await fetch(`${API_BASE}/otp/resend`, {
+    const res = await fetch(`${API_BASE}/api/auth/otp/resend`, {
       ...fetchOptions,
       method: 'POST',
+      credentials: 'include',
       body: JSON.stringify({ verificationId }),
     });
     return this.handleResponse(res);
@@ -100,7 +105,7 @@ export const AuthService = {
 
   async logout() {
     try {
-      await fetch(`${API_BASE}/logout`, { ...fetchOptions, method: 'POST' });
+      await fetch(`${API_BASE}/api/auth/logout`, { ...fetchOptions, method: 'POST',credentials: 'include',});
     } catch (e) {
       console.error('Logout request failed:', e);
     } finally {
@@ -109,8 +114,9 @@ export const AuthService = {
   },
 
   async verifyToken() {
-    const res = await fetch(`${API_BASE}/verify`, {
+    const res = await fetch(`${API_BASE}/api/auth/verify`, {
       ...fetchOptions,
+      credentials: 'include',
       method: 'GET',
     });
     const data = await this.handleResponse(res);
