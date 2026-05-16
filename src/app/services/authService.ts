@@ -6,7 +6,7 @@ export interface UserData {
   role: 'user' | 'admin';
 }
 
-const API_BASE = '/api/auth';
+const API_BASE = 'https://rythmandrise-backend-production.up.railway.app';
 const fetchOptions: RequestInit = {
   headers: { 'Content-Type': 'application/json' },
   credentials: 'include', // Send secure HttpOnly cookies
