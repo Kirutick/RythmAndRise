@@ -18,9 +18,9 @@ export function ProtectedRoute({ children, allowedRole }: ProtectedRouteProps) {
       try {
         const data = await AuthService.verifyToken();
         const user = data.user;
-        
+
         setIsAuthenticated(true);
-        
+
         if (allowedRole && user.role !== allowedRole) {
           setIsAuthorized(false);
         } else {
