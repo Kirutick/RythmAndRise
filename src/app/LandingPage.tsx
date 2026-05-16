@@ -73,7 +73,7 @@ export default function LandingPage() {
               <a href="/login" className="px-6 py-2.5 bg-white border border-brand-surface-hover rounded-full font-bold text-brand-text-main hover:bg-brand-surface transition-all">Login</a>
               <button
                 onClick={() => scrollToSection('contact')}
-                className="hidden md:block px-6 py-2.5 bg-brand-primary text-white rounded-full hover:bg-brand-primary-hover focus:outline-none focus:ring-4 focus:ring-brand-primary/20 transition-all shadow-sm"
+                className="hidden md:flex px-6 py-2.5 bg-brand-primary text-white rounded-full hover:bg-brand-primary-hover focus:outline-none focus:ring-4 focus:ring-brand-primary/20 transition-all shadow-sm"
               >
                 Book Free Call
               </button>
@@ -97,6 +97,12 @@ export default function LandingPage() {
                 <button onClick={() => scrollToSection('services')} className="text-left force-black hover:text-brand-primary">Services</button>
                 <button onClick={() => scrollToSection('testimonials')} className="text-left force-black hover:text-brand-primary">Testimonials</button>
                 <button onClick={() => scrollToSection('contact')} className="text-left force-black hover:text-brand-primary">Contact</button>
+                <a
+                  href="/login"
+                  className="px-6 py-2.5 bg-white border border-brand-surface-hover rounded-full font-bold text-brand-text-main hover:bg-brand-surface transition-all text-center"
+                >
+                  Login
+                </a>
                 <button
                   onClick={() => scrollToSection('contact')}
                   className="px-6 py-2.5 bg-brand-primary text-white rounded-full text-center"
@@ -149,7 +155,7 @@ export default function LandingPage() {
             <div className="relative">
               {/* Background Glow Layer */}
               <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/20 to-brand-primary-hover/20 rounded-3xl transform rotate-3 -z-10"></div>
-              
+
               {/* Stable Image Container */}
               <div className="relative w-full aspect-[4/5] md:aspect-auto md:h-[600px] min-h-[500px] rounded-3xl overflow-hidden shadow-2xl bg-brand-surface border border-brand-surface-hover">
                 <img
@@ -296,7 +302,7 @@ export default function LandingPage() {
             <div className="relative">
               {/* Background Glow Layer */}
               <div className="absolute inset-0 bg-gradient-to-br from-brand-primary/30 to-brand-primary-hover/30 rounded-3xl transform -rotate-3 -z-10"></div>
-              
+
               {/* Stable Image Container */}
               <div className="relative w-full aspect-[3/4] md:aspect-auto md:h-[650px] min-h-[550px] rounded-3xl overflow-hidden shadow-2xl bg-brand-surface border border-brand-surface-hover">
                 <img
@@ -466,7 +472,7 @@ export default function LandingPage() {
             {/* Custom Dropdown for Primary Goal (FIXED FONT) */}
             <div className="relative">
               <label className="block text-black mb-2">Primary Goal</label>
-              <button 
+              <button
                 type="button"
                 onClick={() => setIsGoalDropdownOpen(!isGoalDropdownOpen)}
                 className="w-full px-4 py-3 bg-white text-brand-text-main font-bold flex items-center justify-between border border-brand-surface-hover rounded-xl focus:outline-none focus:ring-4 focus:ring-brand-primary/10 transition-all text-left"
@@ -476,7 +482,7 @@ export default function LandingPage() {
                 </span>
                 <ChevronDown className={`w-5 h-5 text-brand-primary transition-transform duration-300 ${isGoalDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
-              
+
               {isGoalDropdownOpen && (
                 <div className="absolute top-full left-0 w-full mt-2 bg-white rounded-xl shadow-2xl border border-brand-surface-hover z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
                   <div className="py-2">
