@@ -113,16 +113,31 @@ async loginStep1(email: string, password: string, role: 'user' | 'admin') {
     }
   },
 
-  async verifyToken() {
+async verifyToken() {
+  try {
     const res = await fetch(`${API_BASE}/api/auth/verify`, {
       ...fetchOptions,
       credentials: 'include',
       method: 'GET',
     });
+
+    // User not logged in yet
+    if (res.status === 401) {
+      localStorage.removeItem('user');
+      return null;
+    }
+
     const data = await this.handleResponse(res);
+
     if (data.user) {
       localStorage.setItem('user', JSON.stringify(data.user));
     }
+
     return data;
+
+  } catch (err) {
+    console.error('Verify token error:', err);
+    return null;
   }
+}
 };
