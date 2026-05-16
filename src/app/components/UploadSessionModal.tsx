@@ -87,13 +87,13 @@ export default function UploadSessionModal({ onClose, editingSession }: UploadSe
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
       <div className="bg-white w-full max-w-3xl rounded-[2rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="px-8 py-6 border-b border-brand-surface-hover flex items-center justify-between bg-brand-surface/30">
+        <div className="px-4 sm:px-8 py-4 sm:py-6 border-b border-brand-surface-hover flex items-center justify-between bg-brand-surface/30">
           <h2 className="text-2xl font-bold text-brand-text-main">{editingSession ? 'Edit Session' : 'Upload Session'}</h2>
           <button onClick={onClose} className="p-2 hover:bg-brand-surface rounded-full transition-colors"><X className="w-6 h-6 text-brand-text-muted" /></button>
         </div>
 
         {/* Stepper */}
-        <div className="flex items-center justify-center gap-4 py-6 border-b border-brand-surface-hover bg-brand-surface/10 px-8">
+        <div className="flex items-center justify-center gap-2 sm:gap-4 py-4 sm:py-6 border-b border-brand-surface-hover bg-brand-surface/10 px-4 sm:px-8">
           {[
             { num: 1, label: 'Media', icon: Upload },
             { num: 2, label: 'Details', icon: FileText },
@@ -111,7 +111,7 @@ export default function UploadSessionModal({ onClose, editingSession }: UploadSe
           ))}
         </div>
 
-        <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8">
           {step === 1 && (
             <div className="space-y-6 animate-in slide-in-from-right-4">
               <div className="mb-4">
@@ -168,7 +168,7 @@ export default function UploadSessionModal({ onClose, editingSession }: UploadSe
                   <label className="block text-[10px] font-black text-brand-text-muted uppercase tracking-widest mb-2">Session Title</label>
                   <input type="text" value={topic} onChange={e => setTopic(e.target.value)} className="w-full bg-brand-surface border-none rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-brand-primary outline-none transition-all" placeholder="e.g. Morning Awakening Flow" />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] font-black text-brand-text-muted uppercase tracking-widest mb-2">Internal Time (HH:MM)</label>
                     <input type="time" value={time} onChange={e => setTime(e.target.value)} className="w-full bg-brand-surface border-none rounded-2xl px-5 py-4 text-sm font-bold focus:ring-2 focus:ring-brand-primary outline-none transition-all" />
@@ -232,7 +232,7 @@ export default function UploadSessionModal({ onClose, editingSession }: UploadSe
           )}
         </div>
 
-        <div className="px-8 py-6 border-t border-brand-surface-hover bg-brand-surface/30 flex items-center justify-between">
+        <div className="px-4 sm:px-8 py-4 sm:py-6 border-t border-brand-surface-hover bg-brand-surface/30 flex items-center justify-between">
           {step > 1 ? (
             <button onClick={handlePrev} className="px-6 py-3 font-bold text-brand-text-main hover:bg-white rounded-xl transition-all shadow-sm border border-brand-surface-hover flex items-center gap-2">
               <ChevronLeft className="w-4 h-4" /> Back

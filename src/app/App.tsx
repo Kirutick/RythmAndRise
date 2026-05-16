@@ -4,6 +4,7 @@ import AdminDashboard from './AdminDashboard';
 import GalleryPage from './GalleryPage';
 import LoginPage from './LoginPage';
 import UserDashboard from './UserDashboard';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 import { SessionProvider } from './hooks/useSessions';
 
@@ -15,8 +16,16 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/gallery" element={<GalleryPage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/user-dashboard" element={<UserDashboard />} />
+          <Route path="/admin" element={
+            <ProtectedRoute allowedRole="admin">
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/user-dashboard" element={
+            <ProtectedRoute allowedRole="user">
+              <UserDashboard />
+            </ProtectedRoute>
+          } />
         </Routes>
       </Router>
     </SessionProvider>

@@ -1,5 +1,3 @@
-
-
 export interface UserData {
   id?: string;
   name?: string;
@@ -9,9 +7,12 @@ export interface UserData {
 }
 
 const API_BASE = '/api/auth';
+const fetchOptions: RequestInit = {
+  headers: { 'Content-Type': 'application/json' },
+  credentials: 'include', // Send secure HttpOnly cookies
+};
 
 export const AuthService = {
-  // Helper to safely parse JSON or return empty object
   async safeParseJSON(response: Response) {
     const text = await response.text();
     if (!text) return {};
@@ -19,7 +20,6 @@ export const AuthService = {
       return JSON.parse(text);
     } catch (e) {
       console.error('Failed to parse JSON response. Raw text:', text);
-      // If it's not JSON, it might be an HTML error page from Vite/Express
       if (text.includes('<!DOCTYPE html>') || text.includes('<html')) {
         throw new Error(`Server returned an HTML error instead of JSON. Status: ${response.status}`);
       }
@@ -27,30 +27,22 @@ export const AuthService = {
     }
   },
 
-  // Helper to handle response status
   async handleResponse(response: Response) {
     let data: any = {};
     try {
       data = await this.safeParseJSON(response);
     } catch (parseError: any) {
-      // If parsing fails, we still want to throw if the response wasn't OK
-      if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}. Could not parse error details.`);
-      }
+      if (!response.ok) throw new Error(`Request failed with status ${response.status}. Could not parse error details.`);
       throw parseError;
     }
-
-    if (!response.ok) {
-      throw new Error(data.message || data.error || `Request failed with status ${response.status}`);
-    }
+    if (!response.ok) throw new Error(data.message || data.error || `Request failed with status ${response.status}`);
     return data;
   },
 
-  // Step 1: Credentials submission (starts OTP process)
   async signupStep1(data: Omit<UserData, 'role'>) {
     const res = await fetch(`${API_BASE}/signup/step1`, {
+      ...fetchOptions,
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
     return this.handleResponse(res);
@@ -58,18 +50,17 @@ export const AuthService = {
 
   async loginStep1(email: string, password: string, role: 'user' | 'admin') {
     const res = await fetch(`${API_BASE}/login/step1`, {
+      ...fetchOptions,
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, role }),
     });
     return this.handleResponse(res);
   },
 
-  // Step 2: OTP Verification
   async signupStep2(data: Omit<UserData, 'role'>, otp: string, verificationId: string) {
     const res = await fetch(`${API_BASE}/signup/step2`, {
+      ...fetchOptions,
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...data, otp, verificationId }),
     });
     return this.handleResponse(res);
@@ -77,19 +68,55 @@ export const AuthService = {
 
   async loginStep2(email: string, otp: string, verificationId: string, role: 'user' | 'admin') {
     const res = await fetch(`${API_BASE}/login/step2`, {
+      ...fetchOptions,
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, otp, verificationId, role }),
     });
-    return this.handleResponse(res);
+    const data = await this.handleResponse(res);
+    if (data.user) {
+      localStorage.setItem('user', JSON.stringify(data.user));
+    }
+    return data;
   },
 
   async resendOTP(verificationId: string) {
     const res = await fetch(`${API_BASE}/otp/resend`, {
+      ...fetchOptions,
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ verificationId }),
     });
     return this.handleResponse(res);
+  },
+
+  getUser(): UserData | null {
+    const userStr = localStorage.getItem('user');
+    if (!userStr) return null;
+    try {
+      return JSON.parse(userStr);
+    } catch {
+      return null;
+    }
+  },
+
+  async logout() {
+    try {
+      await fetch(`${API_BASE}/logout`, { ...fetchOptions, method: 'POST' });
+    } catch (e) {
+      console.error('Logout request failed:', e);
+    } finally {
+      localStorage.removeItem('user');
+    }
+  },
+
+  async verifyToken() {
+    const res = await fetch(`${API_BASE}/verify`, {
+      ...fetchOptions,
+      method: 'GET',
+    });
+    const data = await this.handleResponse(res);
+    if (data.user) {
+      localStorage.setItem('user', JSON.stringify(data.user));
+    }
+    return data;
   }
 };

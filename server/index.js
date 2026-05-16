@@ -11,21 +11,83 @@ const bcrypt     = require('bcryptjs');
 const jwt        = require('jsonwebtoken');
 const fs         = require('fs');
 const nodemailer = require('nodemailer');
+const helmet     = require('helmet');
+const cookieParser = require('cookie-parser');
+const rateLimit  = require('express-rate-limit');
+const validator  = require('validator');
+const xss        = require('xss');
+const multer     = require('multer');
 
 // ── Startup diagnostics ─────────────────────────────────────────
-console.log('--- Auth Server Debug ---');
-console.log("EMAIL_USER:", process.env.EMAIL_USER);
-console.log("EMAIL_PASS EXISTS:", !!process.env.EMAIL_PASS);
-console.log('DEV_SKIP_EMAIL:', process.env.DEV_SKIP_EMAIL || 'false');
-console.log('-------------------------');
+if (process.env.NODE_ENV !== 'production') {
+  console.log('--- Auth Server Debug ---');
+  console.log("EMAIL_USER:", process.env.EMAIL_USER);
+  console.log("EMAIL_PASS EXISTS:", !!process.env.EMAIL_PASS);
+  console.log('DEV_SKIP_EMAIL:', process.env.DEV_SKIP_EMAIL || 'false');
+  console.log('-------------------------');
+}
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+
+// ── Security Headers (Helmet) ────────────────────────────────────
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" } // Allow images/videos to load
+}));
+
+// ── CORS ─────────────────────────────────────────────────────────
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true
+}));
+
+// ── Body Parser & Cookie Parser ──────────────────────────────────
+app.use(express.json({ limit: '10kb' })); // Prevent large payloads
+app.use(cookieParser());
+
+// ── Rate Limiting ────────────────────────────────────────────────
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // limit each IP to 20 requests per windowMs
+  message: { success: false, message: 'Too many requests, please try again later.' }
+});
+
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 50,
+  message: { success: false, message: 'Too many uploads, please try again later.' }
+});
 
 // ── Constants ────────────────────────────────────────────────────
 const USERS_FILE = path.join(__dirname, 'users.json');
 const JWT_SECRET = process.env.JWT_SECRET || 'rhythm_rise_super_secret_key';
+const UPLOADS_DIR = path.join(__dirname, 'uploads');
+
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR);
+app.use('/uploads', express.static(UPLOADS_DIR)); // Serve uploaded files
+
+// ── File Upload Security (Multer) ────────────────────────────────
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, UPLOADS_DIR),
+  filename: (req, file, cb) => {
+    // Sanitize filename to prevent malicious extensions or paths
+    const ext = path.extname(file.originalname).toLowerCase();
+    const safeName = Date.now() + '-' + Math.round(Math.random() * 1E9) + ext;
+    cb(null, safeName);
+  }
+});
+
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB size limit
+  fileFilter: (req, file, cb) => {
+    // Validate MIME types strictly
+    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only images and videos are allowed.'));
+    }
+  }
+});
 
 // ── Nodemailer transporter ───────────────────────────────────────
 const transporter = nodemailer.createTransport({
@@ -57,15 +119,12 @@ const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString()
 
 // ── Email OTP sender ─────────────────────────────────────────────
 const sendEmailOTP = async (toEmail, otp) => {
-  // Dev bypass – skips real email, logs OTP to terminal
   if (process.env.DEV_SKIP_EMAIL === 'true') {
     console.warn('⚠️  [EMAIL SKIPPED] DEV_SKIP_EMAIL=true');
     console.log(`🔑 [DEV OTP] ${toEmail} => ${otp}`);
     return;
   }
-
   console.log(`[Email] Sending OTP to ${toEmail}...`);
-
   try {
     const info = await transporter.sendMail({
       from: `"Rhythm & Rise" <${process.env.EMAIL_USER}>`,
@@ -79,40 +138,61 @@ const sendEmailOTP = async (toEmail, otp) => {
             <h1 style="font-size:48px; letter-spacing:12px; color:#7c3aed; margin:0;">${otp}</h1>
           </div>
           <p style="color:#888; font-size:14px;">This code expires in <strong>5 minutes</strong>. Do not share it with anyone.</p>
-          <hr style="border:none; border-top:1px solid #eee; margin:24px 0;" />
-          <p style="color:#bbb; font-size:12px;">If you did not request this, please ignore this email.</p>
         </div>
       `,
     });
     console.log(`[Email] OTP sent successfully. MessageId: ${info.messageId}`);
   } catch (err) {
     console.error('[Email] Failed to send OTP:', err.message);
-    console.error('[Email] Full error:', err);
     throw new Error(`Email delivery failed: ${err.message}`);
   }
 };
-
-// ── Global JSON error handler ────────────────────────────────────
 
 // ================================================================
 //  ROUTES
 // ================================================================
 
+// ── File Upload Endpoint ─────────────────────────────────────────
+app.post('/api/upload', uploadLimiter, upload.single('media'), (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, message: 'No file uploaded or invalid format' });
+    // Sanitize title
+    const originalName = req.file.originalname.split('.')[0];
+    const safeTitle = xss(originalName);
+    
+    // Construct absolute URL (using localhost for demo/local dev, ideally use req.get('host') + protocol)
+    const protocol = req.protocol === 'https' ? 'https' : (req.get('X-Forwarded-Proto') || 'http');
+    const host = req.get('host');
+    const url = `${protocol}://${host}/uploads/${req.file.filename}`;
+
+    res.status(200).json({ success: true, url, title: safeTitle });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Apply rate limiter to auth routes
+app.use('/api/auth', authLimiter);
+
 // ── Signup Step 1: validate fields, send OTP to email ────────────
 app.post('/api/auth/signup/step1', async (req, res) => {
   try {
-    const { email, password, name } = req.body;
+    let { email, password, name } = req.body;
 
     if (!email || !password || !name) {
       return res.status(400).json({ success: false, message: 'Name, email and password are required' });
     }
+
+    // Input Validation & Sanitization
+    if (!validator.isEmail(email)) return res.status(400).json({ success: false, message: 'Invalid email format' });
+    email = validator.normalizeEmail(email);
+    name = xss(name.trim()); // Sanitize Name to prevent XSS
 
     const users = getUsers();
     if (users.find((u) => u.email === email)) {
       return res.status(400).json({ success: false, message: 'An account with this email already exists' });
     }
 
-    // Security: Block any signup attempts using the authorized admin email
     const authorizedAdmin = process.env.ADMIN_EMAIL || 'rhythmandrise100@gmail.com';
     if (email.toLowerCase() === authorizedAdmin.toLowerCase()) {
       return res.status(403).json({ success: false, message: 'Admin accounts cannot be created via signup' });
@@ -121,7 +201,6 @@ app.post('/api/auth/signup/step1', async (req, res) => {
     const otp            = generateOTP();
     const verificationId = Date.now().toString();
 
-    // Store OTP + pending user data (password pre-hashed)
     otpStore.set(verificationId, {
       otp,
       expires:  Date.now() + 5 * 60 * 1000,
@@ -132,8 +211,7 @@ app.post('/api/auth/signup/step1', async (req, res) => {
 
     res.status(200).json({ success: true, verificationId, message: 'OTP sent to your email' });
   } catch (err) {
-    console.error('SIGNUP STEP1 ERROR:', err);
-    res.status(500).json({ success: false, message: err.message || 'Failed to send OTP', error: err.message, stack: err.stack });
+    res.status(500).json({ success: false, message: 'Failed to send OTP' });
   }
 });
 
@@ -148,11 +226,10 @@ app.post('/api/auth/signup/step2', async (req, res) => {
     if (otp !== stored.otp)           return res.status(400).json({ success: false, message: 'Incorrect OTP code' });
 
     saveUser(stored.userData);
-    otpStore.delete(verificationId);
+    otpStore.delete(verificationId); // Invalidate OTP after use
 
     res.status(200).json({ success: true, message: 'Account created successfully' });
   } catch (err) {
-    console.error('SIGNUP STEP2 ERROR:', err);
     res.status(500).json({ success: false, message: 'Verification failed' });
   }
 });
@@ -160,30 +237,25 @@ app.post('/api/auth/signup/step2', async (req, res) => {
 // ── Login Step 1: validate credentials, send OTP ─────────────────
 app.post('/api/auth/login/step1', async (req, res) => {
   try {
-    const { email, password, role } = req.body;
+    let { email, password, role } = req.body;
+
+    if (!email || !password) return res.status(400).json({ success: false, message: 'Email and password required' });
+    
+    email = validator.normalizeEmail(email);
 
     let user;
     if (role === 'admin') {
       const authorizedAdmin = process.env.ADMIN_EMAIL || 'rhythmandrise100@gmail.com';
-      
-      // 1. Check if the email matches the only authorized admin account
       if (email.toLowerCase() !== authorizedAdmin.toLowerCase()) {
         return res.status(403).json({ success: false, message: 'Unauthorized admin account' });
       }
-
-      // 2. Validate hardcoded admin password
       if (password === '18*June*1976') {
-        user = {
-          email: authorizedAdmin,
-          role: 'admin',
-          name: 'Admin',
-          otpEmail: authorizedAdmin,
-        };
+        user = { email: authorizedAdmin, role: 'admin', name: 'Admin', otpEmail: authorizedAdmin };
       }
     } else {
       user = getUsers().find((u) => u.email.toLowerCase() === email.toLowerCase());
       if (user && !(await bcrypt.compare(password, user.password))) {
-        user = null; // wrong password
+        user = null;
       }
     }
 
@@ -198,19 +270,18 @@ app.post('/api/auth/login/step1', async (req, res) => {
     otpStore.set(verificationId, {
       otp,
       expires: Date.now() + 5 * 60 * 1000,
-      user:    { email: user.email, role: user.role || role },
+      user:    { email: user.email, role: user.role || role, name: user.name },
     });
 
     await sendEmailOTP(otpTarget, otp);
 
     res.status(200).json({ success: true, verificationId, message: `OTP sent to ${otpTarget}` });
   } catch (err) {
-    console.error('LOGIN STEP1 ERROR:', err);
-    res.status(500).json({ success: false, message: err.message || 'Failed to send OTP', error: err.message, stack: err.stack });
+    res.status(500).json({ success: false, message: 'Failed to send OTP' });
   }
 });
 
-// ── Login Step 2: verify OTP, issue JWT ──────────────────────────
+// ── Login Step 2: verify OTP, issue JWT in HttpOnly Cookie ───────
 app.post('/api/auth/login/step2', async (req, res) => {
   try {
     const { otp, verificationId } = req.body;
@@ -221,11 +292,18 @@ app.post('/api/auth/login/step2', async (req, res) => {
     if (otp !== stored.otp)           return res.status(400).json({ success: false, message: 'Incorrect OTP' });
 
     const token = jwt.sign(stored.user, JWT_SECRET, { expiresIn: '7d' });
-    otpStore.delete(verificationId);
+    otpStore.delete(verificationId); // Invalidate OTP after use
 
-    res.status(200).json({ success: true, token, user: stored.user });
+    // Secure HttpOnly Cookie
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
+    res.status(200).json({ success: true, user: stored.user });
   } catch (err) {
-    console.error('LOGIN STEP2 ERROR:', err);
     res.status(500).json({ success: false, message: 'Login verification failed' });
   }
 });
@@ -242,20 +320,39 @@ app.post('/api/auth/otp/resend', async (req, res) => {
     stored.otp     = newOtp;
     stored.expires = Date.now() + 5 * 60 * 1000;
 
-    // Resolve the email to send to
-    const toEmail = stored.userData ? stored.userData.email
-                  : stored.user     ? stored.user.email
-                  : null;
-
+    const toEmail = stored.userData ? stored.userData.email : stored.user ? stored.user.email : null;
     if (!toEmail) return res.status(400).json({ success: false, message: 'Could not determine email address' });
 
     await sendEmailOTP(toEmail, newOtp);
 
     res.status(200).json({ success: true, verificationId, message: 'New OTP sent to your email' });
   } catch (err) {
-    console.error('RESEND OTP ERROR:', err);
-    res.status(500).json({ success: false, message: err.message || 'Failed to resend OTP', error: err.message, stack: err.stack });
+    res.status(500).json({ success: false, message: 'Failed to resend OTP' });
   }
+});
+
+// ── Verify Session via HttpOnly Cookie ───────────────────────────
+app.get('/api/auth/verify', async (req, res) => {
+  try {
+    const token = req.cookies.token;
+    if (!token) {
+      return res.status(401).json({ success: false, message: 'No session cookie provided' });
+    }
+    const decoded = jwt.verify(token, JWT_SECRET);
+    res.status(200).json({ success: true, user: decoded });
+  } catch (err) {
+    res.status(401).json({ success: false, message: 'Invalid or expired session' });
+  }
+});
+
+// ── Logout ───────────────────────────────────────────────────────
+app.post('/api/auth/logout', (req, res) => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict'
+  });
+  res.status(200).json({ success: true, message: 'Logged out successfully' });
 });
 
 // ── Global 404 handler ───────────────────────────────────────────
@@ -265,11 +362,17 @@ app.use((req, res) => {
 
 // ── Global error handler ─────────────────────────────────────────
 app.use((err, req, res, next) => {
-  console.error('Global Error:', err);
+  console.error('Global Error:', process.env.NODE_ENV === 'development' ? err : err.message);
+  
+  // Handle Multer payload too large error safely
+  if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({ success: false, message: 'File is too large. Max size is 50MB.' });
+  }
+
   res.status(err.status || 500).json({
     success: false,
-    message: err.message || 'Internal Server Error',
-    error:   process.env.NODE_ENV === 'development' ? err.stack : undefined,
+    message: 'Internal Server Error',
+    error: process.env.NODE_ENV === 'development' ? err.stack : undefined,
   });
 });
 

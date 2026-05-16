@@ -33,6 +33,21 @@ export default function LoginPage() {
     return () => clearInterval(interval);
   }, [resendTimer]);
 
+  // Auto-redirect if already logged in
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const data = await AuthService.verifyToken();
+        if (data.user) {
+          navigate(data.user.role === 'admin' ? '/admin' : '/user-dashboard');
+        }
+      } catch (err) {
+        // Not authenticated, stay on login page
+      }
+    };
+    checkAuth();
+  }, [navigate]);
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -85,7 +100,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[100vh] bg-brand-surface flex flex-col px-4 py-8 overflow-y-auto" style={{ fontFamily: 'Inter, sans-serif' }}>
+    <div className="min-h-[100vh] bg-brand-surface flex flex-col px-4 py-8 overflow-y-auto page-container" style={{ fontFamily: 'Inter, sans-serif' }}>
       <div className="max-w-md w-full m-auto bg-white rounded-3xl shadow-2xl overflow-hidden border border-brand-surface-hover">
         {/* Header */}
         <div className="p-8 pb-4 text-center">
@@ -198,7 +213,7 @@ export default function LoginPage() {
                   >
                     <InputOTPGroup>
                       {Array.from({ length: 6 }).map((_, i) => (
-                        <InputOTPSlot key={i} index={i} className="w-12 h-14 text-xl font-bold bg-brand-surface border-brand-surface-hover" />
+                        <InputOTPSlot key={i} index={i} className="w-10 sm:w-12 h-12 sm:h-14 text-lg sm:text-xl font-bold bg-brand-surface border-brand-surface-hover" />
                       ))}
                     </InputOTPGroup>
                   </InputOTP>

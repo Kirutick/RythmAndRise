@@ -2,6 +2,7 @@ import { LogOut, Calendar as CalendarIcon, Star, Clock, Play, ChevronLeft, Chevr
 import { useNavigate } from 'react-router-dom';
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSessions } from './hooks/useSessions';
+import { AuthService } from './services/authService';
 
 function CountdownTimer({ targetDate, targetTime }: { targetDate: string, targetTime: string }) {
   const [timeLeft, setTimeLeft] = useState<{ days: number, hours: number, minutes: number, seconds: number } | null>(null);
@@ -117,14 +118,14 @@ export default function UserDashboard() {
   }, [currentMonth]);
 
   return (
-    <div className="min-h-screen bg-brand-surface" style={{ fontFamily: 'Inter, sans-serif' }}>
+    <div className="min-h-screen bg-brand-surface page-container" style={{ fontFamily: 'Inter, sans-serif' }}>
       <nav className="bg-white border-b border-brand-surface-hover sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src="/logo.jpeg" alt="Logo" className="w-10 h-10 rounded-full" />
             <span className="font-bold text-brand-text-main" style={{ fontFamily: 'Playfair Display, serif' }}>Member Area</span>
           </div>
-          <button onClick={() => navigate('/')} className="flex items-center gap-2 bg-white border border-brand-surface-hover text-black px-5 py-2.5 rounded-xl transition-all font-bold hover:bg-black hover:text-white shadow-sm">
+          <button onClick={() => { AuthService.logout(); navigate('/'); }} className="flex items-center gap-2 bg-white border border-brand-surface-hover text-black px-5 py-2.5 rounded-xl transition-all font-bold hover:bg-black hover:text-white shadow-sm">
             <LogOut className="w-4 h-4" /><span>Logout</span>
           </button>
         </div>
@@ -142,9 +143,9 @@ export default function UserDashboard() {
             <div className="flex items-center gap-2 text-brand-primary font-bold text-xs uppercase tracking-widest mb-3"><Star className="w-4 h-4" /> Session History</div>
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
               <div className="xl:col-span-4 space-y-6">
-                <div className="bg-white p-8 rounded-[3rem] shadow-xl border border-brand-surface-hover">
-                  <div className="flex items-center justify-between mb-8 px-2">
-                    <div className="flex gap-2">
+                <div className="bg-white p-4 sm:p-8 rounded-[2rem] sm:rounded-[3rem] shadow-xl border border-brand-surface-hover">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 px-2">
+                    <div className="flex gap-2 w-full sm:w-auto overflow-x-auto pb-2 sm:pb-0">
                       <select value={currentMonth.getMonth()} onChange={(e) => setCurrentMonth(new Date(currentMonth.getFullYear(), parseInt(e.target.value)))} className="bg-brand-surface border border-brand-surface-hover rounded-xl px-4 py-2.5 text-[11px] font-bold text-brand-text-main outline-none cursor-pointer hover:bg-brand-surface-hover transition-colors shadow-sm">
                         {months.map((m, i) => <option key={m} value={i}>{m}</option>)}
                       </select>
@@ -152,7 +153,7 @@ export default function UserDashboard() {
                         {years.map((y) => <option key={y} value={y}>{y}</option>)}
                       </select>
                     </div>
-                    <div className="flex gap-1">
+                    <div className="flex gap-1 justify-end sm:justify-start">
                       <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))} className="p-2 hover:bg-brand-surface rounded-full"><ChevronLeft className="w-4 h-4" /></button>
                       <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))} className="p-2 hover:bg-brand-surface rounded-full"><ChevronRight className="w-4 h-4" /></button>
                     </div>

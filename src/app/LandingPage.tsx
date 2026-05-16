@@ -45,7 +45,7 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-brand-surface" style={{ fontFamily: 'Inter, sans-serif' }}>
+    <div className="min-h-screen bg-brand-surface page-container" style={{ fontFamily: 'Inter, sans-serif' }}>
       {/* Sticky Header */}
       <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-brand-surface-hover">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-black" style={{ color: 'black' }}>

@@ -87,35 +87,46 @@ export default function MediaUploader({ onUpload }: MediaUploaderProps) {
     setIsUploading(true);
     
     try {
-      let finalUrl = preview.url;
-      
-      // If it's an image, convert to Base64 for persistence in this local demo
-      if (preview.type === 'image') {
-        finalUrl = await fileToBase64(currentFileRef.current);
-      }
+      // Create FormData to send file to the backend
+      const formData = new FormData();
+      formData.append('media', currentFileRef.current);
 
-      // Simulate upload progress
+      // Simulate upload progress while fetch happens
       let p = 0;
       const interval = setInterval(() => {
         p += 10;
-        setProgress(p);
-        if (p >= 100) {
-          clearInterval(interval);
-          setTimeout(() => {
-            onUpload({
-              type: preview.type,
-              url: finalUrl,
-              title: preview.name.split('.')[0]
-            });
-            setPreview(null);
-            currentFileRef.current = null;
-            setIsUploading(false);
-            setProgress(0);
-          }, 500);
-        }
-      }, 100);
-    } catch (err) {
-      setError('Failed to process image. Please try again.');
+        if (p < 90) setProgress(p); // Cap at 90% until fetch resolves
+      }, 200);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+        // credentials: 'include' can be added if upload route needs auth in future
+      });
+
+      const data = await res.json();
+      
+      clearInterval(interval);
+      setProgress(100);
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.message || 'Upload failed');
+      }
+
+      setTimeout(() => {
+        onUpload({
+          type: preview.type,
+          url: data.url, // URL returned from backend
+          title: data.title || preview.name.split('.')[0]
+        });
+        setPreview(null);
+        currentFileRef.current = null;
+        setIsUploading(false);
+        setProgress(0);
+      }, 500);
+
+    } catch (err: any) {
+      setError(err.message || 'Failed to process media. Please try again.');
       setIsUploading(false);
     }
   };
@@ -128,7 +139,7 @@ export default function MediaUploader({ onUpload }: MediaUploaderProps) {
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
           onDrop={handleDrop}
-          className={`relative border-2 border-dashed rounded-[2.5rem] p-12 transition-all flex flex-col items-center justify-center text-center gap-4 ${dragActive ? 'border-brand-primary bg-brand-primary/5 scale-[0.99]' : 'border-brand-surface-hover bg-brand-surface/30 hover:border-brand-primary/50'}`}
+          className={`relative border-2 border-dashed rounded-[2.5rem] p-6 sm:p-12 transition-all flex flex-col items-center justify-center text-center gap-4 ${dragActive ? 'border-brand-primary bg-brand-primary/5 scale-[0.99]' : 'border-brand-surface-hover bg-brand-surface/30 hover:border-brand-primary/50'}`}
         >
           <input 
             ref={fileInputRef}
@@ -147,16 +158,16 @@ export default function MediaUploader({ onUpload }: MediaUploaderProps) {
             <p className="text-sm text-brand-text-muted">or click to browse your files</p>
           </div>
 
-          <div className="flex gap-4 mt-4">
+          <div className="flex flex-col sm:flex-row gap-4 mt-4 w-full sm:w-auto">
             <button 
               onClick={() => fileInputRef.current?.click()}
-              className="px-6 py-3 bg-white text-brand-text-main rounded-2xl font-bold text-sm shadow-sm hover:shadow-md transition-all flex items-center gap-2 border border-brand-surface-hover"
+              className="w-full sm:w-auto px-6 py-3 bg-white text-brand-text-main rounded-2xl font-bold text-sm shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 border border-brand-surface-hover"
             >
               <ImageIcon className="w-4 h-4 text-brand-primary" /> Photos
             </button>
             <button 
               onClick={() => fileInputRef.current?.click()}
-              className="px-6 py-3 bg-white text-brand-text-main rounded-2xl font-bold text-sm shadow-sm hover:shadow-md transition-all flex items-center gap-2 border border-brand-surface-hover"
+              className="w-full sm:w-auto px-6 py-3 bg-white text-brand-text-main rounded-2xl font-bold text-sm shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2 border border-brand-surface-hover"
             >
               <Video className="w-4 h-4 text-brand-primary" /> Videos
             </button>
@@ -216,7 +227,7 @@ export default function MediaUploader({ onUpload }: MediaUploaderProps) {
             </button>
           </div>
 
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-4">
             <button 
               onClick={handleConfirm}
               className="flex-1 bg-brand-primary text-white py-4 rounded-2xl font-bold shadow-xl hover:bg-brand-primary-hover transition-all flex items-center justify-center gap-2"
@@ -225,7 +236,7 @@ export default function MediaUploader({ onUpload }: MediaUploaderProps) {
             </button>
             <button 
               onClick={() => setPreview(null)}
-              className="px-8 bg-brand-surface text-brand-text-main py-4 rounded-2xl font-bold hover:bg-brand-surface-hover transition-all"
+              className="w-full sm:w-auto px-8 bg-brand-surface text-brand-text-main py-4 rounded-2xl font-bold hover:bg-brand-surface-hover transition-all"
             >
               Cancel
             </button>

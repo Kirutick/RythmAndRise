@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
-import { LayoutDashboard, LogOut, Trash2, ImageIcon, Video, Calendar, PlusCircle, Sparkles, Monitor, History, FastForward, CheckCircle2, AlertCircle, Link as LinkIcon, ChevronLeft, ChevronRight, X, ChevronDown, Clock, Upload, Pencil } from 'lucide-react';
+import { AuthService } from './services/authService';
+import { LayoutDashboard, LogOut, Trash2, ImageIcon, Video, Calendar, PlusCircle, Sparkles, Monitor, History, FastForward, CheckCircle2, AlertCircle, Link as LinkIcon, ChevronLeft, ChevronRight, X, ChevronDown, Clock, Upload, Pencil, Menu } from 'lucide-react';
 import { useMedia } from './hooks/useMedia';
 import { useSessions } from './hooks/useSessions';
 import { useLandingPage } from './hooks/useLandingPage';
@@ -9,6 +10,7 @@ import UploadSessionModal from './components/UploadSessionModal';
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'gallery' | 'landing' | 'upcoming' | 'previous'>('gallery');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { images: landingImages, updateImage: updateLandingImage } = useLandingPage();
   const { media, addMedia: addGalleryMedia, removeMedia: removeGalleryMedia } = useMedia();
   const { 
@@ -92,26 +94,42 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-brand-surface flex" style={{ fontFamily: 'Inter, sans-serif' }}>
+    <div className="min-h-screen bg-brand-surface flex page-container" style={{ fontFamily: 'Inter, sans-serif' }}>
+      {/* Mobile Header */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-20 bg-white border-b border-brand-surface-hover flex items-center justify-between px-6 z-40">
+        <div className="flex items-center gap-3">
+          <img src="/logo.jpeg" alt="Logo" className="w-10 h-10 rounded-full border-2 border-brand-primary/20" />
+          <span className="font-bold text-brand-text-main">Admin Control</span>
+        </div>
+        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-brand-text-main bg-brand-surface rounded-xl">
+          {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+      </div>
+
+      {/* Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-72 bg-white border-r border-brand-surface-hover flex flex-col fixed inset-y-0 shadow-sm z-10">
+      <aside className={`w-72 bg-white border-r border-brand-surface-hover flex flex-col fixed inset-y-0 shadow-sm z-50 transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <div className="p-8">
           <div className="flex items-center gap-3 mb-10">
             <img src="/logo.jpeg" alt="Logo" className="w-12 h-12 rounded-full border-2 border-brand-primary/20" />
             <div><span className="block font-bold text-brand-text-main text-sm">Admin Control</span><span className="text-[10px] text-brand-text-muted uppercase tracking-widest font-bold">Rhythm & Rise</span></div>
           </div>
           <div className="space-y-6">
-            <button onClick={() => setActiveTab('gallery')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold ${activeTab === 'gallery' ? 'bg-brand-primary text-white shadow-lg' : 'text-brand-text-muted hover:bg-brand-surface hover:text-brand-text-main'}`}><LayoutDashboard className="w-5 h-5" /> Main Gallery</button>
-            <button onClick={() => setActiveTab('landing')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold ${activeTab === 'landing' ? 'bg-brand-primary text-white shadow-lg' : 'text-brand-text-muted hover:bg-brand-surface hover:text-brand-text-main'}`}><ImageIcon className="w-5 h-5" /> Landing Page Photos</button>
-            <button onClick={() => setActiveTab('upcoming')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold ${activeTab === 'upcoming' ? 'bg-brand-primary text-white shadow-lg' : 'text-brand-text-muted hover:bg-brand-surface hover:text-brand-text-main'}`}><FastForward className="w-5 h-5" /> Upcoming Session</button>
+            <button onClick={() => { setActiveTab('gallery'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold ${activeTab === 'gallery' ? 'bg-brand-primary text-white shadow-lg' : 'text-brand-text-muted hover:bg-brand-surface hover:text-brand-text-main'}`}><LayoutDashboard className="w-5 h-5" /> Main Gallery</button>
+            <button onClick={() => { setActiveTab('landing'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold ${activeTab === 'landing' ? 'bg-brand-primary text-white shadow-lg' : 'text-brand-text-muted hover:bg-brand-surface hover:text-brand-text-main'}`}><ImageIcon className="w-5 h-5" /> Landing Page Photos</button>
+            <button onClick={() => { setActiveTab('upcoming'); setIsSidebarOpen(false); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-bold ${activeTab === 'upcoming' ? 'bg-brand-primary text-white shadow-lg' : 'text-brand-text-muted hover:bg-brand-surface hover:text-brand-text-main'}`}><FastForward className="w-5 h-5" /> Upcoming Session</button>
           </div>
         </div>
-        <div className="mt-auto p-8 border-t border-brand-surface-hover"><button onClick={() => navigate('/')} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 font-bold hover:bg-red-50 transition-all"><LogOut className="w-5 h-5" /> Sign Out</button></div>
+        <div className="mt-auto p-8 border-t border-brand-surface-hover"><button onClick={() => { AuthService.logout(); navigate('/'); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 font-bold hover:bg-red-50 transition-all"><LogOut className="w-5 h-5" /> Sign Out</button></div>
       </aside>
 
-      <main className="flex-1 ml-72 p-12 overflow-y-auto">
+      <main className="flex-1 w-full lg:ml-72 mt-20 lg:mt-0 p-4 sm:p-8 lg:p-12 overflow-x-hidden">
         {activeTab === 'gallery' && (
-          <div className="max-w-6xl space-y-12">
+          <div className="max-w-6xl space-y-12 mx-auto">
             <header><div className="flex items-center gap-2 text-brand-primary font-black text-xs uppercase tracking-widest mb-2"><Monitor className="w-4 h-4" /> Visual Identity</div><h1 className="text-4xl font-bold text-brand-text-main" style={{ fontFamily: 'Playfair Display, serif' }}>Public Lookbook</h1></header>
             
             {/* SPLIT SLIDABLE GALLERY */}
