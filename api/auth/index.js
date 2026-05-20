@@ -1,4 +1,4 @@
-// api/index.js
+// api/auth/index.js
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -13,19 +13,20 @@ import { v2 as cloudinary } from 'cloudinary';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { connectDB } from '../lib/db.js';
-import User from '../src/models/user.js';
+import { connectDB } from '../../lib/db.js';
+import User from '../../src/models/user.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Load env files
-dotenv.config({ path: path.join(__dirname, '../.env.local') });
-dotenv.config({ path: path.join(__dirname, '../.env') });
+dotenv.config({ path: path.join(__dirname, '../../.env.local') });
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 const JWT_SECRET = process.env.JWT_SECRET || 'rhythm_rise_super_secret_key';
 
 const app = express();
+// Enable trusting Vercel proxy to allow secure cookies to be set correctly
 app.set('trust proxy', 1);
 
 // Security headers
@@ -34,8 +35,6 @@ app.use(helmet({
 }));
 
 // CORS Configuration
-const isProd = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
-
 app.use(cors({
   origin: (origin, callback) => {
     const allowed = [
@@ -52,7 +51,7 @@ app.use(cors({
   credentials: true
 }));
 
-// Parsers
+// Parsers (cookie parser is initialized before routes)
 app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
 
@@ -90,7 +89,7 @@ const upload = multer({
   }
 });
 
-// Helper to parse cookies in verify route
+// Helper to parse cookies in verify route (fallback)
 function parseCookies(cookieHeader = '') {
   return Object.fromEntries(
     cookieHeader.split(';').map(c => {
@@ -102,6 +101,8 @@ function parseCookies(cookieHeader = '') {
 
 // Apply rate limiter to auth endpoints
 app.use('/api/auth', authLimiter);
+
+const isProd = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
 
 // ── Signup Endpoint ────────────────────────────────────────────────
 app.post('/api/auth/signup', async (req, res) => {
@@ -131,9 +132,14 @@ app.post('/api/auth/signup', async (req, res) => {
 
     const token = jwt.sign({ email: newUser.email, name: newUser.name, role: newUser.role }, JWT_SECRET, { expiresIn: '7d' });
 
-    res.setHeader('Set-Cookie',
-      `token=${token}; HttpOnly; Secure=${isProd}; SameSite=${isProd ? 'None' : 'Lax'}; Path=/; Max-Age=${7 * 24 * 60 * 60}`
-    );
+    // Set cookie using res.cookie(...) before sending JSON response
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? 'Lax' : 'Lax', // 'Lax' is optimal for same-domain deployments
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
+    });
 
     return res.status(200).json({
       success: true,
@@ -185,9 +191,14 @@ app.post('/api/auth/login', async (req, res) => {
       { expiresIn: '7d' }
     );
 
-    res.setHeader('Set-Cookie',
-      `token=${token}; HttpOnly; Secure=${isProd}; SameSite=${isProd ? 'None' : 'Lax'}; Path=/; Max-Age=${7 * 24 * 60 * 60}`
-    );
+    // Set cookie using res.cookie(...) before sending JSON response
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: isProd ? 'Lax' : 'Lax', // 'Lax' is optimal for same-domain deployments
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
+    });
 
     return res.status(200).json({
       success: true,
@@ -216,9 +227,12 @@ app.get('/api/auth/verify', (req, res) => {
 
 // ── Logout Endpoint ──────────────────────────────────────────────
 app.post('/api/auth/logout', (req, res) => {
-  res.setHeader('Set-Cookie',
-    `token=; HttpOnly; Secure=${isProd}; SameSite=${isProd ? 'None' : 'Lax'}; Path=/; Max-Age=0`
-  );
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'Lax' : 'Lax',
+    path: '/'
+  });
   return res.status(200).json({ success: true, message: 'Logged out successfully' });
 });
 

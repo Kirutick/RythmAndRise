@@ -2,11 +2,11 @@
   "name": "rhythm-rise-backend",
   "version": "1.0.0",
   "description": "Rhythm & Rise Backend",
-  "main": "index.js",
+  "main": "auth/index.js",
   "type": "module",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js"
+    "start": "node auth/index.js",
+    "dev": "nodemon auth/index.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
