@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import validator from 'validator';
 import xss from 'xss';
 import { connectDB } from '../../lib/db.js';
-import User from '../../models/User.js';
+import User from '../../src/models/user.js';
 
 export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
