@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Upload, X, ImageIcon, Video, FileText, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { uploadMedia } from '../services/uploadService';
 
 interface MediaUploaderProps {
   onUpload: (media: { type: 'image' | 'video', url: string, title: string }) => void;
@@ -87,10 +88,6 @@ export default function MediaUploader({ onUpload }: MediaUploaderProps) {
     setIsUploading(true);
     
     try {
-      // Create FormData to send file to the backend
-      const formData = new FormData();
-      formData.append('media', currentFileRef.current);
-
       // Simulate upload progress while fetch happens
       let p = 0;
       const interval = setInterval(() => {
@@ -98,20 +95,10 @@ export default function MediaUploader({ onUpload }: MediaUploaderProps) {
         if (p < 90) setProgress(p); // Cap at 90% until fetch resolves
       }, 200);
 
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-        // credentials: 'include' can be added if upload route needs auth in future
-      });
-
-      const data = await res.json();
+      const data = await uploadMedia(currentFileRef.current);
       
       clearInterval(interval);
       setProgress(100);
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.message || 'Upload failed');
-      }
 
       setTimeout(() => {
         onUpload({

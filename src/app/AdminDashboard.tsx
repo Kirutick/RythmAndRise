@@ -507,10 +507,7 @@ export default function AdminDashboard() {
 
                 <MediaUploader 
                   onUpload={(item) => {
-                    addMediaToPastSession(adminSelectedDate, item.type === 'image' ? 'photo' : 'video', {
-                      ...item,
-                      id: Date.now().toString()
-                    });
+                    addMediaToPastSession(adminSelectedDate, item.type === 'image' ? 'photo' : 'video', item);
                     alert('Session history updated!');
                   }}
                 />
