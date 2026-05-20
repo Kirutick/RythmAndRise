@@ -34,6 +34,8 @@ app.use(helmet({
 }));
 
 // CORS Configuration
+const isProd = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
+
 app.use(cors({
   origin: (origin, callback) => {
     const allowed = [
@@ -41,7 +43,7 @@ app.use(cors({
       'https://rythmnrise.com',
       'https://www.rythmnrise.com',
     ].filter(Boolean);
-    if (!origin || allowed.includes(origin) || origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')) {
+    if (!origin || allowed.includes(origin) || origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1') || origin.endsWith('.vercel.app')) {
       callback(null, true);
     } else {
       callback(new Error(`CORS blocked: ${origin}`));
@@ -130,7 +132,7 @@ app.post('/api/auth/signup', async (req, res) => {
     const token = jwt.sign({ email: newUser.email, name: newUser.name, role: newUser.role }, JWT_SECRET, { expiresIn: '7d' });
 
     res.setHeader('Set-Cookie',
-      `token=${token}; HttpOnly; Secure=${process.env.NODE_ENV === 'production'}; SameSite=Strict; Path=/; Max-Age=${7 * 24 * 60 * 60}`
+      `token=${token}; HttpOnly; Secure=${isProd}; SameSite=${isProd ? 'None' : 'Lax'}; Path=/; Max-Age=${7 * 24 * 60 * 60}`
     );
 
     return res.status(200).json({
@@ -184,7 +186,7 @@ app.post('/api/auth/login', async (req, res) => {
     );
 
     res.setHeader('Set-Cookie',
-      `token=${token}; HttpOnly; Secure=${process.env.NODE_ENV === 'production'}; SameSite=Strict; Path=/; Max-Age=${7 * 24 * 60 * 60}`
+      `token=${token}; HttpOnly; Secure=${isProd}; SameSite=${isProd ? 'None' : 'Lax'}; Path=/; Max-Age=${7 * 24 * 60 * 60}`
     );
 
     return res.status(200).json({
@@ -200,8 +202,7 @@ app.post('/api/auth/login', async (req, res) => {
 // ── Verify Session Endpoint ──────────────────────────────────────
 app.get('/api/auth/verify', (req, res) => {
   try {
-    const cookies = parseCookies(req.headers.cookie);
-    const token   = cookies.token;
+    const token = req.cookies?.token || parseCookies(req.headers.cookie)?.token;
 
     if (!token)
       return res.status(401).json({ success: false, message: 'No session cookie provided' });
@@ -216,7 +217,7 @@ app.get('/api/auth/verify', (req, res) => {
 // ── Logout Endpoint ──────────────────────────────────────────────
 app.post('/api/auth/logout', (req, res) => {
   res.setHeader('Set-Cookie',
-    `token=; HttpOnly; Secure=${process.env.NODE_ENV === 'production'}; SameSite=Strict; Path=/; Max-Age=0`
+    `token=; HttpOnly; Secure=${isProd}; SameSite=${isProd ? 'None' : 'Lax'}; Path=/; Max-Age=0`
   );
   return res.status(200).json({ success: true, message: 'Logged out successfully' });
 });
