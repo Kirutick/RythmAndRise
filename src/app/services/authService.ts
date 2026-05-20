@@ -39,58 +39,32 @@ export const AuthService = {
     return data;
   },
 
-  async signupStep1(data: Omit<UserData, 'role'>) {
-    const res = await fetch(`${API_BASE}/api/auth/signup/step1`, {
+  async signup(data: Omit<UserData, 'role'>) {
+    const res = await fetch(`${API_BASE}/api/auth/signup`, {
       ...fetchOptions,
       method: 'POST',
       body: JSON.stringify(data),
     });
-    return this.handleResponse(res);
+    const responseData = await this.handleResponse(res);
+    if (responseData.user) {
+      localStorage.setItem('user', JSON.stringify(responseData.user));
+    }
+    return responseData;
   },
 
-async loginStep1(email: string, password: string, role: 'user' | 'admin') {
-  const res = await fetch(`${API_BASE}/api/auth/login/step1`, {
-    ...fetchOptions,
-    method: 'POST',
-    credentials: 'include',
-    body: JSON.stringify({ email, password, role }),
-  });
-
-  return this.handleResponse(res);
-},
-
-  async signupStep2(data: Omit<UserData, 'role'>, otp: string, verificationId: string) {
-    const res = await fetch(`${API_BASE}/api/auth/signup/step2`, {
+  async login(email: string, password: string, role: 'user' | 'admin') {
+    const res = await fetch(`${API_BASE}/api/auth/login`, {
       ...fetchOptions,
       method: 'POST',
       credentials: 'include',
-      body: JSON.stringify({ ...data, otp, verificationId }),
+      body: JSON.stringify({ email, password, role }),
     });
-    return this.handleResponse(res);
-  },
 
-  async loginStep2(email: string, otp: string, verificationId: string, role: 'user' | 'admin') {
-    const res = await fetch(`${API_BASE}/api/auth/login/step2`, {
-      ...fetchOptions,
-      method: 'POST',
-      credentials: 'include',
-      body: JSON.stringify({ email, otp, verificationId, role }),
-    });
     const data = await this.handleResponse(res);
     if (data.user) {
       localStorage.setItem('user', JSON.stringify(data.user));
     }
     return data;
-  },
-
-  async resendOTP(verificationId: string) {
-    const res = await fetch(`${API_BASE}/api/auth/otp/resend`, {
-      ...fetchOptions,
-      method: 'POST',
-      credentials: 'include',
-      body: JSON.stringify({ verificationId }),
-    });
-    return this.handleResponse(res);
   },
 
   getUser(): UserData | null {
@@ -121,6 +95,27 @@ async verifyToken() {
       method: 'GET',
     });
 
+    if (res.status === 401) {
+      localStorage.removeItem('user');
+      return null;
+    }
+
+    const data = await this.handleResponse(res);
+
+    if (data.user) {
+      localStorage.setItem(
+        'user',
+        JSON.stringify(data.user)
+      );
+    }
+
+    return data;
+
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+}
     // User not logged in yet
     if (res.status === 401) {
       localStorage.removeItem('user');
