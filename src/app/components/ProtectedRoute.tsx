@@ -11,24 +11,30 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children, allowedRole }: ProtectedRouteProps) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+  const [userRole, setUserRole] = useState<'user' | 'admin' | null>(null);
   const location = useLocation();
 
   useEffect(() => {
     const verifySession = async () => {
       try {
         const data = await AuthService.verifyToken();
+        if (!data || !data.user) {
+          throw new Error('Not authenticated');
+        }
         const user = data.user;
-
+        setUserRole(user.role);
         setIsAuthenticated(true);
-        setIsAuthorized(true);
 
         if (allowedRole && user.role !== allowedRole) {
           setIsAuthorized(false);
+        } else {
+          setIsAuthorized(true);
         }
       } catch (err) {
         AuthService.logout();
         setIsAuthenticated(false);
         setIsAuthorized(false);
+        setUserRole(null);
       }
     };
 
@@ -52,8 +58,12 @@ export function ProtectedRoute({ children, allowedRole }: ProtectedRouteProps) {
   }
 
   if (!isAuthorized) {
-    // Authenticated but wrong role
-    return <Navigate to="/login" replace />;
+    // Authenticated but wrong role - cross-redirect to appropriate dashboard
+    if (userRole === 'admin') {
+      return <Navigate to="/admin-dashboard" replace />;
+    } else {
+      return <Navigate to="/user-dashboard" replace />;
+    }
   }
 
   return <>{children}</>;

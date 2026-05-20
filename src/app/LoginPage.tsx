@@ -20,8 +20,12 @@ export default function LoginPage() {
     const checkAuth = async () => {
       try {
         const data = await AuthService.verifyToken();
-        if (data.user) {
-          navigate('/admin');
+        if (data && data.user) {
+          if (data.user.role === 'admin') {
+            navigate('/admin-dashboard');
+          } else {
+            navigate('/user-dashboard');
+          }
         }
       } catch (err) {
         // Not authenticated, stay on login page
@@ -36,11 +40,15 @@ export default function LoginPage() {
 
     try {
       if (isLogin) {
-        await AuthService.login(email, password, role);
-        navigate('/admin');
+        const data = await AuthService.login(email, password, role);
+        if (data.user?.role === 'admin') {
+          navigate('/admin-dashboard');
+        } else {
+          navigate('/user-dashboard');
+        }
       } else {
         await AuthService.signup({ name, email, password });
-        navigate('/admin');
+        navigate('/user-dashboard');
       }
     } catch (err: any) {
       alert(err.message);
