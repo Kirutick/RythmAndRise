@@ -115,24 +115,5 @@ async verifyToken() {
     console.error(err);
     return null;
   }
-}
-    // User not logged in yet
-    if (res.status === 401) {
-      localStorage.removeItem('user');
-      return null;
-    }
-
-    const data = await this.handleResponse(res);
-
-    if (data.user) {
-      localStorage.setItem('user', JSON.stringify(data.user));
-    }
-
-    return data;
-
-  } catch (err) {
-    console.error('Verify token error:', err);
-    return null;
   }
-}
 };
