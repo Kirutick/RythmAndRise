@@ -109,21 +109,54 @@ export const AuthService = {
     }
   },
 
+  /**
+   * Clear local auth state only (no network request).
+   * Use this when auth verification fails — avoids wasting another
+   * round-trip to the server.
+   */
+  clearLocalAuth() {
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+  },
+
+  /**
+   * Full logout: clears server cookie + local state.
+   * Only makes a server request if a token actually exists.
+   */
   async logout() {
-    try {
-      await fetch(`${API_BASE}/logout`, {
-        ...buildFetchOptions(),
-        method: 'POST',
-      });
-    } catch (e) {
-      console.error('Logout request failed:', e);
-    } finally {
-      localStorage.removeItem('user');
-      localStorage.removeItem('token');
+    const hasToken = !!localStorage.getItem('token');
+    // Always clear local state first
+    this.clearLocalAuth();
+
+    if (hasToken) {
+      try {
+        await fetch(`${API_BASE}/logout`, {
+          ...buildFetchOptions(),
+          method: 'POST',
+        });
+      } catch (e) {
+        console.error('Logout request failed:', e);
+      }
     }
   },
 
+  /**
+   * Verify the current session.
+   * 
+   * CRITICAL: If no token exists in localStorage, return null immediately
+   * WITHOUT making a network request. This prevents:
+   * - Wasted 1.6s serverless cold-start on unauthenticated page loads
+   * - Console 401 errors on every app load
+   * - Unnecessary rate limiter consumption
+   */
   async verifyToken() {
+    // Fast path: no token means no session — skip the network request entirely
+    const token = localStorage.getItem('token');
+    if (!token) {
+      this.clearLocalAuth();
+      return null;
+    }
+
     try {
       const res = await fetch(`${API_BASE}/verify`, {
         ...buildFetchOptions(),
@@ -131,8 +164,7 @@ export const AuthService = {
       });
 
       if (res.status === 401) {
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
+        this.clearLocalAuth();
         return null;
       }
 
@@ -144,7 +176,8 @@ export const AuthService = {
 
       return data;
     } catch (err) {
-      console.error(err);
+      console.error('Session verification failed:', err);
+      this.clearLocalAuth();
       return null;
     }
   },

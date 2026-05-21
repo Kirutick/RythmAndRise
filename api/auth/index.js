@@ -99,8 +99,9 @@ function parseCookies(cookieHeader = '') {
   );
 }
 
-// Apply rate limiter to auth endpoints
-app.use('/api/auth', authLimiter);
+// Apply rate limiter only to login and signup (not verify/logout)
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/signup', authLimiter);
 
 const isProd = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
 
@@ -240,7 +241,7 @@ app.post('/api/auth/logout', (req, res) => {
   res.clearCookie('token', {
     httpOnly: true,
     secure: isProd,
-    sameSite: isProd ? 'Lax' : 'Lax',
+    sameSite: 'Lax',
     path: '/'
   });
   return res.status(200).json({ success: true, message: 'Logged out successfully' });

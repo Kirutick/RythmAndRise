@@ -31,7 +31,7 @@ export function ProtectedRoute({ children, allowedRole }: ProtectedRouteProps) {
           setIsAuthorized(true);
         }
       } catch (err) {
-        AuthService.logout();
+        AuthService.clearLocalAuth();
         setIsAuthenticated(false);
         setIsAuthorized(false);
         setUserRole(null);

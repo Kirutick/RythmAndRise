@@ -18,7 +18,12 @@ export default function LoginPage() {
   // Auto-redirect if already logged in
   useEffect(() => {
     const checkAuth = async () => {
+      // Quick check: if no token exists locally, skip the network request
+      const cachedUser = AuthService.getUser();
+      if (!cachedUser) return; // Not logged in, stay on login page
+
       try {
+        // Verify with server (verifyToken also short-circuits if no localStorage token)
         const data = await AuthService.verifyToken();
         if (data && data.user) {
           if (data.user.role === 'admin') {
