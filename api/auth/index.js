@@ -1,4 +1,22 @@
 // api/auth/index.js
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load env files
+dotenv.config({ path: path.join(__dirname, '../../.env.local') });
+dotenv.config({ path: path.join(__dirname, '../../.env') });
+
+export const runtime = 'nodejs'; // not 'edge'
+console.log("ENV CHECK:", {
+  dbUrl: process.env.DATABASE_URL,
+  jwtSecret: process.env.JWT_SECRET,
+});
+
+
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -10,27 +28,8 @@ import validator from 'validator';
 import xss from 'xss';
 import multer from 'multer';
 import { v2 as cloudinary } from 'cloudinary';
-import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import { connectDB } from '../../lib/db.js';
 import User from '../../src/models/user.js';
-import 'dotenv/config'; // ESM
-
-
-
-require('dotenv').config(); // CommonJS
-const express = require('express');
-console.log("ENV CHECK:", {
-  dbUrl: process.env.DATABASE_URL,
-  jwtSecret: process.env.JWT_SECRET,
-});
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Load env files
-dotenv.config({ path: path.join(__dirname, '../../.env.local') });
-dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 const JWT_SECRET = process.env.JWT_SECRET || 'rhythm_rise_super_secret_key';
 
