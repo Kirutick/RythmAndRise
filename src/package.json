@@ -5,5 +5,7 @@
     "ejs": "^5.0.2",
     "express": "^5.2.1",
     "formidable": "^3.5.4"
-  }
+
+  },
+  "type": "module"
 }
