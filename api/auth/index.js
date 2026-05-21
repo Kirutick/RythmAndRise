@@ -300,10 +300,4 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start local dev server if not in Vercel lambda environment
-if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
-  const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => console.log(`✅ Backend server listening on port ${PORT}`));
-}
-
 export default app;
