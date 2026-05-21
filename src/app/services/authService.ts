@@ -8,10 +8,27 @@ export interface UserData {
 
 const API_BASE = '/api/auth';
 
-const fetchOptions: RequestInit = {
-  headers: { 'Content-Type': 'application/json' },
-  credentials: 'include',
-};
+/**
+ * Build fetch options with credentials:'include' for cookies
+ * AND an Authorization header with the localStorage token as fallback.
+ */
+function buildFetchOptions(extraHeaders?: Record<string, string>): RequestInit {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...extraHeaders,
+  };
+
+  // Attach Bearer token from localStorage as a fallback for cookies
+  const token = localStorage.getItem('token');
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  return {
+    headers,
+    credentials: 'include', // still send cookies as primary auth
+  };
+}
 
 export const AuthService = {
   async safeParseJSON(response: Response) {
@@ -51,12 +68,15 @@ export const AuthService = {
   },
 
   async signup(data: Omit<UserData, 'role'>) {
-    const res = await fetch(`${API_BASE}/signup`, {   // ✅ was /api/auth/api/auth/signup
-      ...fetchOptions,
+    const res = await fetch(`${API_BASE}/signup`, {
+      ...buildFetchOptions(),
       method: 'POST',
       body: JSON.stringify(data),
     });
     const responseData = await this.handleResponse(res);
+    if (responseData.token) {
+      localStorage.setItem('token', responseData.token);
+    }
     if (responseData.user) {
       localStorage.setItem('user', JSON.stringify(responseData.user));
     }
@@ -64,12 +84,15 @@ export const AuthService = {
   },
 
   async login(email: string, password: string, role: 'user' | 'admin') {
-    const res = await fetch(`${API_BASE}/login`, {    // ✅ was /api/auth/api/auth/login
-      ...fetchOptions,
+    const res = await fetch(`${API_BASE}/login`, {
+      ...buildFetchOptions(),
       method: 'POST',
       body: JSON.stringify({ email, password, role }),
     });
     const data = await this.handleResponse(res);
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+    }
     if (data.user) {
       localStorage.setItem('user', JSON.stringify(data.user));
     }
@@ -88,26 +111,28 @@ export const AuthService = {
 
   async logout() {
     try {
-      await fetch(`${API_BASE}/logout`, {             // ✅ was /api/auth/api/auth/logout
-        ...fetchOptions,
+      await fetch(`${API_BASE}/logout`, {
+        ...buildFetchOptions(),
         method: 'POST',
       });
     } catch (e) {
       console.error('Logout request failed:', e);
     } finally {
       localStorage.removeItem('user');
+      localStorage.removeItem('token');
     }
   },
 
   async verifyToken() {
     try {
-      const res = await fetch(`${API_BASE}/verify`, { // ✅ was /api/auth/api/auth/verify
-        ...fetchOptions,
+      const res = await fetch(`${API_BASE}/verify`, {
+        ...buildFetchOptions(),
         method: 'GET',
       });
 
       if (res.status === 401) {
         localStorage.removeItem('user');
+        localStorage.removeItem('token');
         return null;
       }
 

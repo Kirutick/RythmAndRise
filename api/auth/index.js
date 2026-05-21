@@ -136,7 +136,7 @@ app.post('/api/auth/signup', async (req, res) => {
     res.cookie('token', token, {
       httpOnly: true,
       secure: isProd,
-      sameSite: isProd ? 'Lax' : 'Lax', // 'Lax' is optimal for same-domain deployments
+      sameSite: 'Lax',
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
     });
@@ -144,6 +144,7 @@ app.post('/api/auth/signup', async (req, res) => {
     return res.status(200).json({
       success: true,
       message: 'Account created successfully',
+      token,
       user: { email: newUser.email, name: newUser.name, role: 'user' }
     });
   } catch (err) {
@@ -195,13 +196,14 @@ app.post('/api/auth/login', async (req, res) => {
     res.cookie('token', token, {
       httpOnly: true,
       secure: isProd,
-      sameSite: isProd ? 'Lax' : 'Lax', // 'Lax' is optimal for same-domain deployments
+      sameSite: 'Lax',
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
     });
 
     return res.status(200).json({
       success: true,
+      token,
       user: { email: foundUser.email, name: foundUser.name, role: foundUser.role }
     });
   } catch (err) {
@@ -213,10 +215,18 @@ app.post('/api/auth/login', async (req, res) => {
 // ── Verify Session Endpoint ──────────────────────────────────────
 app.get('/api/auth/verify', (req, res) => {
   try {
-    const token = req.cookies?.token || parseCookies(req.headers.cookie)?.token;
+    // Try cookie first, then Authorization header as fallback
+    let token = req.cookies?.token || parseCookies(req.headers.cookie)?.token;
+
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
+    }
 
     if (!token)
-      return res.status(401).json({ success: false, message: 'No session cookie provided' });
+      return res.status(401).json({ success: false, message: 'No session token provided' });
 
     const decoded = jwt.verify(token, JWT_SECRET);
     return res.status(200).json({ success: true, user: decoded });
