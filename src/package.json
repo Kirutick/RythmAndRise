@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cloudinary": "^2.10.0",
+    "ejs": "^5.0.2",
+    "express": "^5.2.1",
+    "formidable": "^3.5.4"
+  }
+}

@@ -137,7 +137,7 @@ app.post('/api/auth/signup', async (req, res) => {
     res.cookie('token', token, {
       httpOnly: true,
       secure: isProd,
-      sameSite: 'Lax',
+      sameSite: isProd ? 'None' : 'Lax',
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
     });
@@ -197,7 +197,7 @@ app.post('/api/auth/login', async (req, res) => {
     res.cookie('token', token, {
       httpOnly: true,
       secure: isProd,
-      sameSite: 'Lax',
+      sameSite: isProd ? 'None' : 'Lax', 
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
     });
