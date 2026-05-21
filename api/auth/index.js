@@ -15,7 +15,16 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { connectDB } from '../../lib/db.js';
 import User from '../../src/models/user.js';
+import 'dotenv/config'; // ESM
 
+
+
+require('dotenv').config(); // CommonJS
+const express = require('express');
+console.log("ENV CHECK:", {
+  dbUrl: process.env.DATABASE_URL,
+  jwtSecret: process.env.JWT_SECRET,
+});
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -52,8 +61,9 @@ app.use(cors({
 }));
 
 // Parsers (cookie parser is initialized before routes)
-app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 // Rate Limiters
 const authLimiter = rateLimit({
@@ -104,6 +114,7 @@ app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/signup', authLimiter);
 
 const isProd = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
+// Add this at the top of your signup route file to debug
 
 // ── Signup Endpoint ────────────────────────────────────────────────
 app.post('/api/auth/signup', async (req, res) => {
@@ -151,6 +162,7 @@ app.post('/api/auth/signup', async (req, res) => {
   } catch (err) {
     console.error('signup error:', err.message);
     return res.status(500).json({ success: false, message: 'Signup failed' });
+    
   }
 });
 
